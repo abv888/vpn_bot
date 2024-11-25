@@ -1,0 +1,11 @@
+aiogram
+fastapi
+uvicorn
+asyncpg
+requests
+qrcode
+Pillow
+sqlalchemy
+yookassa
+python-dotenv
+greenlet
