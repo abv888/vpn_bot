@@ -1,3 +1,5 @@
+import json
+from os import getenv
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -33,27 +35,6 @@ class Server:
             "tariffs": {months: tariff.to_dict() for months, tariff in self.tariffs.items()}
         }
 
-
-# TARIFFS_DATA = {
-#     1: Tariff(amount=300, string="месяц", amount_stars=120, label="Подписка на 1 месяц"),
-#     3: Tariff(amount=810, string="месяца", amount_stars=300, label="Подписка на 3 месяца"),
-#     6: Tariff(amount=1260, string="месяцев", amount_stars=500, label="Подписка на 6 месяцев"),
-#     12: Tariff(amount=1800, string="месяцев", amount_stars=700, label="Подписка на 12 месяцев"),
-# }
-
-TARIFFS_DATA = {
-    1: Tariff(amount=300, string="месяц", amount_stars=1, label="Подписка на 1 месяц"),
-    3: Tariff(amount=810, string="месяца", amount_stars=1, label="Подписка на 3 месяца"),
-    6: Tariff(amount=1260, string="месяцев", amount_stars=1, label="Подписка на 6 месяцев"),
-    12: Tariff(amount=1800, string="месяцев", amount_stars=1, label="Подписка на 12 месяцев"),
-}
-
-SERVERS = {
-    "NL": Server(location="NL", description="🇳🇱 Нидерланды", tariffs=TARIFFS_DATA),
-    "DE": Server(location="DE", description="🇩🇪 Германия", tariffs=TARIFFS_DATA),
-    "US": Server(location="US", description="🇺🇸 США", tariffs=TARIFFS_DATA),
-}
-
 class UserData(StatesGroup):
     waiting_for_email = State()
     waiting_for_name = State()
@@ -61,6 +42,31 @@ class UserData(StatesGroup):
 
 class SubscriptionNavigation(StatesGroup):
     viewing = State()
+
+def get_servers_from_config():
+    vpn_configs = json.loads(getenv("VPN"))
+    servers = {}
+    
+    for location, config in vpn_configs.items():
+        servers[location] = Server(
+            location=location,
+            description=get_location_description(location),  # Добавим эту функцию
+            tariffs=TARIFFS_DATA
+        )
+    return servers
+
+def get_location_description(location: str) -> str:
+    """Получает описание локации с флагом"""
+    location_descriptions = {
+        "NL": "🇳🇱 Нидерланды",
+        "DE": "🇩🇪 Германия",
+        "US": "🇺🇸 США",
+        "FR": "🇫🇷 Франция",
+        "GB": "🇬🇧 Великобритания",
+        # Добавьте другие страны по необходимости
+    }
+    # Если локация неизвестна, возвращаем просто код страны
+    return location_descriptions.get(location, f"🌍 {location}")
 
 async def show_subscription(message, state: FSMContext, client):
     data = await state.get_data()
@@ -110,3 +116,25 @@ async def calculate_discount(client: DBClient) -> float:
 
 async def generate_referral_code():
     return str(uuid.uuid4())
+
+# TARIFFS_DATA = {
+#     1: Tariff(amount=300, string="месяц", amount_stars=120, label="Подписка на 1 месяц"),
+#     3: Tariff(amount=810, string="месяца", amount_stars=300, label="Подписка на 3 месяца"),
+#     6: Tariff(amount=1260, string="месяцев", amount_stars=500, label="Подписка на 6 месяцев"),
+#     12: Tariff(amount=1800, string="месяцев", amount_stars=700, label="Подписка на 12 месяцев"),
+# }
+
+TARIFFS_DATA = {
+    1: Tariff(amount=300, string="месяц", amount_stars=1, label="Подписка на 1 месяц"),
+    3: Tariff(amount=810, string="месяца", amount_stars=1, label="Подписка на 3 месяца"),
+    6: Tariff(amount=1260, string="месяцев", amount_stars=1, label="Подписка на 6 месяцев"),
+    12: Tariff(amount=1800, string="месяцев", amount_stars=1, label="Подписка на 12 месяцев"),
+}
+
+# SERVERS = {
+#     "NL": Server(location="NL", description="🇳🇱 Нидерланды", tariffs=TARIFFS_DATA),
+#     "DE": Server(location="DE", description="🇩🇪 Германия", tariffs=TARIFFS_DATA),
+#     "US": Server(location="US", description="🇺🇸 США", tariffs=TARIFFS_DATA),
+# }
+
+SERVERS = get_servers_from_config()

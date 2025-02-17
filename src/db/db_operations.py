@@ -104,15 +104,16 @@ async def add_referral_to_referrer(referrer_telegram_id: int, referral_telegram_
 
 async def confirm_referral(referral_telegram_id: int):
     async with async_session() as session:
-        referral = await session.execute(
+        result = await session.execute(
             select(DBClient).where(DBClient.telegram_id == referral_telegram_id)
-        ).scalar_one_or_none()
+        )
+        referral = result.scalar_one_or_none()
 
         if referral and referral.referred_by:
-            referrer = await session.execute(
+            result = await session.execute(
                 select(DBClient).where(DBClient.telegram_id == referral.referred_by)
-            ).scalar_one_or_none()
-
+            )
+            referrer = result.scalar_one_or_none()
             if referrer:
                 for r in referrer.referred_users:
                     if r["telegram_id"] == referral_telegram_id and r["status"] == "registered":

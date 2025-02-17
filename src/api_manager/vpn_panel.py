@@ -164,7 +164,7 @@ class VPNPanelAPI:
         """Generate a connection link for a client."""
         vpn_connection_string = (
             f"{client.protocol}://{client.client_id}@{self.config['domen']}:{client.port}"
-            f"?type={client.network}&security={client.security}&pbk=Ptdt5qr3Q40ujiMaoC1dhSfQvv_HQB84XEatzo9tDhI&fp=chrome&sni=google.com&sid=7c4ba98ea2821d07&spx=%2F"
+            f"?type={client.network}&security={client.security}&pbk={self.config['pbk']}&fp=chrome&sni=google.com&sid={self.config['sid']}&spx=%2F"
             f"&flow={client.flow}#{client.email}"
         )
         return vpn_connection_string
