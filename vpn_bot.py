@@ -1,4 +1,3 @@
-# vpn_bot.py
 import asyncio
 import json
 import logging
@@ -12,6 +11,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile, PreCheckoutQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.dispatcher.middlewares.base import BaseMiddleware
 
 from src.db.models import Subscription, init_db
 from src.api_manager.vpn_panel import VPNPanelAPI
@@ -36,6 +36,66 @@ print(vpn)
 yookassa.Configuration.account_id = getenv("YOOKASSA_SHOP_ID")
 yookassa.Configuration.secret_key = getenv("YOOKASSA_API_TOKEN")
 
+class VPNMiddleware(BaseMiddleware):
+    def __init__(self):
+        super().__init__()
+        self.connections = {}
+        
+    async def __call__(self, handler, event, data):
+        # VPN API нужен только для определенных операций
+        needs_vpn = False
+        location = None
+
+        # Проверяем, нужен ли VPN для текущей операции
+        if hasattr(event, 'data') and event.data:
+            if "check_" in event.data:  # Проверка платежа
+                needs_vpn = True
+                if "_payment_" in event.data:
+                    location = event.data.split("_")[2]
+            elif "payment_" in event.data:  # Обработка платежа
+                needs_vpn = True
+                location = event.data.split("_")[2]
+
+        # Если это успешный платеж
+        if hasattr(event, 'successful_payment') and event.successful_payment is not None:
+            needs_vpn = True
+            try:
+                payment_data = json.loads(event.successful_payment.invoice_payload)
+                location = payment_data.get('location', 'NL')
+            except Exception as e:
+                logger.error(f"Error parsing payment data: {e}")
+                location = "NL"
+
+        if needs_vpn:
+            location = location or "NL"
+            if location not in self.connections:
+                try:
+                    vpn_api = VPNPanelAPI(location=location)
+                    await vpn_api.authenticate()
+                    self.connections[location] = vpn_api
+                    logger.info(f"Created new VPN connection for location: {location}")
+                except Exception as e:
+                    logger.error(f"Failed to create VPN connection for {location}: {e}")
+                    raise
+
+            data["vpn_api"] = self.connections[location]
+            data["selected_location"] = location
+
+        try:
+            return await handler(event, data)
+        except Exception as e:
+            if needs_vpn:
+                logger.error(f"Error in handler for location {location}: {e}")
+            raise
+
+    async def close_all(self):
+        """Закрыть все соединения"""
+        for location, connection in self.connections.items():
+            try:
+                await connection.close()
+                logger.info(f"Closed VPN connection for location: {location}")
+            except Exception as e:
+                logger.error(f"Error closing VPN connection for {location}: {e}")
 
 @dp.message(F.text == "/start")
 async def send_welcome(message: Message):
@@ -141,7 +201,6 @@ async def skip_referral_code(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await call.message.edit_text("Ваши данные успешно сохранены. Выберите локацию:", reply_markup=location_menu())
 
-
 @dp.callback_query(F.data == "my_referrals")
 async def show_referrals(call: CallbackQuery):
     logger.info(f"User {call.from_user.id} clicked on 'My Referrals'.")
@@ -187,11 +246,6 @@ async def show_referrals(call: CallbackQuery):
                 f"({referral.get('email', 'Email не указан')}) — <b>{status}</b>"
             )
         referral_text += "\n".join(referral_details)
-    
-
-    referral_list = "\n".join(
-        [f"{index + 1}. Пользователь: {ref_telegram_id}" for index, ref_telegram_id in enumerate(referred_users)]
-    )
 
     await call.message.edit_text(
         referral_text,
@@ -278,7 +332,6 @@ async def show_subscriptions(call: CallbackQuery, state: FSMContext):
         return
     await state.update_data(subscriptions=subscriptions, current_index=0)
     await show_subscription(call.message, state, client)
-
 
 @dp.callback_query(F.data == "next_subscription")
 async def next_subscription(call: CallbackQuery, state: FSMContext):
@@ -596,7 +649,6 @@ async def check_payment_callback(call: CallbackQuery, vpn_api: VPNPanelAPI):
                     id=id
                 )
                 client = await vpn_api.get_client(
-                    inbound_id=6,
                     client_email=f"{id}-{payload.get('username')}-{payload.get('location')}-{payload.get('months')}"
                 )
                 link = await vpn_api.configure_link(client=client)
@@ -610,13 +662,13 @@ async def check_payment_callback(call: CallbackQuery, vpn_api: VPNPanelAPI):
                 )
                 await bot.send_photo(
                     chat_id=payload.get("telegram_id"),
-                    photo=FSInputFile(f"{client.client_id}.png"),
+                    photo=FSInputFile(f"users/qr/{client.client_id}.png"),
                     caption=f"<code>{link}</code>",
                     parse_mode=ParseMode.HTML
                 )
                 await add_subscription_to_profile(
                     telegram_id=call.from_user.id, 
-                    subscription= Subscription(
+                    subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
                         expiry_time=payload.get('months'),
@@ -624,7 +676,7 @@ async def check_payment_callback(call: CallbackQuery, vpn_api: VPNPanelAPI):
                         link=link
                     ))
                 await confirm_referral(referral_telegram_id=call.from_user.id)
-            elif status == "chseck":
+            elif status == "check":
                 if call.message.text != "Ожидание появления платежа в блокчейне...":
                     await call.message.edit_text(
                         text="Ожидание появления платежа в блокчейне...",
@@ -678,7 +730,6 @@ async def check_payment_callback(call: CallbackQuery, vpn_api: VPNPanelAPI):
                         id=id
                     )
                 client = await vpn_api.get_client(
-                    inbound_id=6,
                     client_email=f"{id}-{payload.get('username')}-{payload.get('location')}-{payload.get('months')}"
                 )
                 link = await vpn_api.configure_link(client=client)
@@ -692,13 +743,13 @@ async def check_payment_callback(call: CallbackQuery, vpn_api: VPNPanelAPI):
                 )
                 await bot.send_photo(
                     chat_id=payload.get("telegram_id"),
-                    photo=FSInputFile(f"{client.client_id}.png"),
+                    photo=FSInputFile(f"users/qr/{client.client_id}.png"),
                     caption=f"<code>{link}</code>",
                     parse_mode=ParseMode.HTML
                 )
                 await add_subscription_to_profile(
                     telegram_id=call.from_user.id, 
-                    subscription= Subscription(
+                    subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
                         expiry_time=payload.get('months'),
@@ -706,7 +757,7 @@ async def check_payment_callback(call: CallbackQuery, vpn_api: VPNPanelAPI):
                         link=link
                     ))
                 await confirm_referral(referral_telegram_id=call.from_user.id)
-            elif payment.status == "pensdding":
+            elif payment.status == "pending":
                 if call.message.text != "Платеж находится в обработке...":
                     await call.message.edit_text(
                             text="Платеж находится в обработке...",
@@ -737,8 +788,14 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
 async def success_stars_payment_handler(message: Message, vpn_api: VPNPanelAPI):
     payload = json.loads(message.successful_payment.invoice_payload)
     id = uuid.uuid4()
-    await vpn_api.add_client(day=int(payload.get("months")) * 30, email=f"{payload.get("username")}-{payload.get("location")}-{payload.get("months")}", id=id)
-    client = await vpn_api.get_client(inbound_id=6, client_email=f"{id}-{payload.get("username")}-{payload.get("location")}-{payload.get("months")}")
+    await vpn_api.add_client(
+        day=int(payload.get("months")) * 30, 
+        email=f"{payload.get('username')}-{payload.get('location')}-{payload.get('months')}", 
+        id=id
+    )
+    client = await vpn_api.get_client(
+        client_email=f"{id}-{payload.get('username')}-{payload.get('location')}-{payload.get('months')}"
+    )
     link = await vpn_api.configure_link(client=client)
     create_qr_with_logo(
         data=link,
@@ -746,48 +803,43 @@ async def success_stars_payment_handler(message: Message, vpn_api: VPNPanelAPI):
     )
     await bot.send_photo(
         chat_id=payload.get("telegram_id"),
-        photo=FSInputFile(f"{client.client_id}.png"),
+        photo=FSInputFile(f"users/qr/{client.client_id}.png"),
         caption=f"<code>{link}</code>",
         parse_mode=ParseMode.HTML
     )
     await add_subscription_to_profile(
-                    telegram_id=payload.get("telegram_id"), 
-                    subscription= Subscription(
-                        subscription_id=client.client_id,
-                        location=payload.get('location'),
-                        expiry_time=payload.get('months'),
-                        qr=f"users/qr/{client.client_id}.png",
-                        link=link
-                    ))
+        telegram_id=payload.get("telegram_id"), 
+        subscription=Subscription(
+            subscription_id=client.client_id,
+            location=payload.get('location'),
+            expiry_time=payload.get('months'),
+            qr=f"users/qr/{client.client_id}.png",
+            link=link
+        ))
     await confirm_referral(referral_telegram_id=payload.get("telegram_id"))
 
-from aiogram.dispatcher.middlewares.base import BaseMiddleware
-
-class VPNMiddleware(BaseMiddleware):
-    async def __call__(self, handler, event, data):
-        vpn_api = VPNPanelAPI()
-        await vpn_api.authenticate()
-        data["vpn_api"] = vpn_api
-        try:
-            return await handler(event, data)
-        finally:
-            await vpn_api.close()
-
+# Регистрация middleware
 dp.message.middleware.register(VPNMiddleware())
 dp.callback_query.middleware.register(VPNMiddleware())
 
 async def main():
-    vpn_api = VPNPanelAPI()
+    # Создаем middleware
+    vpn_middleware = VPNMiddleware()
+    
     try:
-        await vpn_api.authenticate()
-        print("VPN API authenticated successfully.")
+        # Регистрируем middleware
+        dp.message.middleware.register(vpn_middleware)
+        dp.callback_query.middleware.register(vpn_middleware)
+        
+        # Инициализируем базу данных
         await init_db()
-        print("DB inited successfully.")
+        print("DB initialized successfully.")
+        
+        # Запускаем бота
         await dp.start_polling(bot)
     finally:
-        await vpn_api.close()
-    
-
+        # Закрываем все VPN соединения при завершении
+        await vpn_middleware.close_all()
 
 if __name__ == '__main__':
-        asyncio.run(main())
+    asyncio.run(main())

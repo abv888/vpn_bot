@@ -1,4 +1,5 @@
 import enum
+from os import getenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
@@ -40,7 +41,7 @@ class DBClient(Base):
     discount = Column(Float, default=0.0)
 
 async_engine = create_async_engine(
-    "postgresql+asyncpg://gen_user:.04St%237eTCs7~m@194.87.221.8:5432/default_db",
+    f"postgresql+asyncpg://{getenv("DB_USER")}:{getenv("DB_PASSWORD")}@{getenv("DB_HOST")}:5432/{getenv("DB_NAME")}",
     echo=True,
     pool_pre_ping=True,
     pool_recycle=1800

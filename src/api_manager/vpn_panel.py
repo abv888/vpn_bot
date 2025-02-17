@@ -10,13 +10,32 @@ from os import getenv
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class VPNConfig:
+    def __init__(self):
+        try:
+            self.vpn_configs = json.loads(getenv("VPN"))
+        except json.JSONDecodeError as e:
+            logger.error(f"Ошибка парсинга VPN конфигурации: {e}")
+            raise
+        except TypeError as e:
+            logger.error(f"VPN конфигурация не найдена в переменных окружения: {e}")
+            raise
+
+    def get_config(self, location: str) -> dict:
+        """Получить конфигурацию для конкретной локации"""
+        config = self.vpn_configs.get(location)
+        if not config:
+            raise ValueError(f"Конфигурация для локации {location} не найдена")
+        return config
+
 
 class Client:
     def __init__(
             self, 
             inbound_id, 
             client_id, 
-            email, port, 
+            email, 
+            port, 
             protocol, 
             network, 
             security, 
@@ -33,11 +52,15 @@ class Client:
 
 
 class VPNPanelAPI:
-    def __init__(self):
+    def __init__(self, location: str):
+        self.vpn_config = VPNConfig()
+        self.location = location
+        self.config = self.vpn_config.get_config(location)
         self.session = aiohttp.ClientSession()
-        self.host = f"https://{getenv("VPN_DOMEN")}/{getenv("WEBBASEPATH")}"
-        self.username = getenv("VPN_PANEL_USERNAME")
-        self.password = getenv("VPN_PANEL_PASSWORD")
+        self.host = f"https://{self.config['domen']}:{self.config['port']}/{self.config['path']}"
+        self.username = self.config['username']
+        self.password = self.config['password']
+        self.inbound_id = self.config['inbound']
         self.authenticated = False
 
     async def authenticate(self):
@@ -49,10 +72,14 @@ class VPNPanelAPI:
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-        async with self.session.post(f"{self.host}/login", headers=headers, json=data) as response:
-            if response.status != 200:
-                raise Exception(f"Authentication failed with status {response.status}")
-            self.authenticated = True
+        try:
+            async with self.session.post(f"{self.host}/login", headers=headers, json=data) as response:
+                if response.status != 200:
+                    raise Exception(f"Authentication failed with status {response.status}")
+                self.authenticated = True
+        except Exception as e:
+            logger.error(f"Ошибка аутентификации для локации {self.location}: {e}")
+            raise
 
     async def ensure_authenticated(self):
         if not self.authenticated:
@@ -70,44 +97,46 @@ class VPNPanelAPI:
                 'Content-Type': 'application/json'
             }
             payload = {
-                "id": 6,
-                "settings": "{\"clients\": [{\"id\": \""+f"{id}"+"\",\"flow\": \"\",\"email\": \""+f"{id}-{email}"+"\",\"flow\":\"xtls-rprx-vision\",\"limitIp\": 0,\"totalGB\": 0,\"expiryTime\": "+f"{expiry_time}"+",\"enable\": true,\"tgId\": \"\",\"subId\": \""+f"{id}-{email}"+"\",\"reset\": 0}]}"
+                "id": self.inbound_id,
+                "settings": "{\"clients\": [{\"id\": \""+f"{id}"+"\",\"email\": \""+f"{id}-{email}"+"\",\"flow\":\"xtls-rprx-vision\",\"limitIp\": 0,\"totalGB\": 0,\"expiryTime\": "+f"{expiry_time}"+",\"enable\": true,\"tgId\": \"\",\"subId\": \""+f"{id}-{email}"+"\",\"reset\": 0}]}"
             }
+            logger.info(f"Добавление клиента для локации {self.location}: {payload}")
+            
             async with self.session.post(
-            f"{self.host}/panel/api/inbounds/addClient", 
-            json=payload, 
-            headers=headers) as response:
+                f"{self.host}/panel/api/inbounds/addClient", 
+                json=payload, 
+                headers=headers
+            ) as response:
                 if response.status != 200:
                     raise Exception(f"Ошибка добавления клиента: {response.status}")
 
                 response_data = await response.json()
-                logger.info(f"Ответ от addClient: {response_data}")
+                logger.info(f"Ответ от addClient для локации {self.location}: {response_data}")
 
                 if not response_data.get("success", False):
                     raise Exception(f"Не удалось добавить клиента: {response_data.get('msg', 'Нет сообщения')}")
                 return response_data
         except Exception as e:
-            logger.error(f"Ошибка в add_client: {e}")
+            logger.error(f"Ошибка в add_client для локации {self.location}: {e}")
             raise
 
-
-    async def get_client(self, inbound_id, client_email):
+    async def get_client(self, client_email):
         try:
-            async with self.session.get(f"{self.host}/panel/api/inbounds/get/{inbound_id}") as response:
+            await self.ensure_authenticated()
+            async with self.session.get(f"{self.host}/panel/api/inbounds/get/{self.inbound_id}") as response:
                 if response.status != 200:
-                    logger.error(f"Ошибка получения данных: {response.status}")
+                    logger.error(f"Ошибка получения данных для локации {self.location}: {response.status}")
                     return None
                 
                 response_data = await response.json()
-                logger.info(f"Ответ от API: {response_data}")
+                logger.info(f"Ответ от API для локации {self.location}: {response_data}")
                 
-                # Проверяем, содержит ли ответ ключ 'obj'
                 if not response_data.get("success", False):
                     raise Exception(f"Запрос завершился неудачно: {response_data.get('msg', 'Нет сообщения')}")
                 
                 inbound = response_data.get("obj")
                 if not inbound:
-                    logger.error("Ответ не содержит 'obj'")
+                    logger.error(f"Ответ не содержит 'obj' для локации {self.location}")
                     return None
                 
                 settings = json.loads(inbound["settings"])
@@ -116,7 +145,7 @@ class VPNPanelAPI:
                 for client_settings in settings["clients"]:
                     if client_settings["email"] == client_email:
                         return Client(
-                            inbound_id=inbound_id,
+                            inbound_id=self.inbound_id,
                             client_id=client_settings["id"],
                             email=client_settings["email"],
                             port=inbound["port"],
@@ -126,18 +155,16 @@ class VPNPanelAPI:
                             flow=client_settings["flow"]
                         )
             
-                # Если клиент с указанным email не найден
-                raise Exception(f"Клиент с email {client_email} не найден.")
+                raise Exception(f"Клиент с email {client_email} не найден в локации {self.location}.")
         except Exception as e:
-            logger.error(f"Ошибка в get_client: {e}")
+            logger.error(f"Ошибка в get_client для локации {self.location}: {e}")
             return None
-
 
     async def configure_link(self, client: Client):
         """Generate a connection link for a client."""
         vpn_connection_string = (
-            f"{client.protocol}://{client.client_id}@{getenv("VPN_DOMEN")}:{client.port}"
-            f"?type={client.network}&security={client.security}&fp=&alpn=h3,h2,http/1.1"
+            f"{client.protocol}://{client.client_id}@{self.config['domen']}:{client.port}"
+            f"?type={client.network}&security={client.security}&pbk=Ptdt5qr3Q40ujiMaoC1dhSfQvv_HQB84XEatzo9tDhI&fp=chrome&sni=google.com&sid=7c4ba98ea2821d07&spx=%2F"
             f"&flow={client.flow}#{client.email}"
         )
         return vpn_connection_string
