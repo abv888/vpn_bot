@@ -5,7 +5,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from src.utils.utils import generate_referral_code
+from utils.utils import generate_referral_code
 from .models import AsyncSession, DBClient, Subscription, async_engine
 
 logging.basicConfig(level=logging.INFO)

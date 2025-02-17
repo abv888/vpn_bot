@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from typing import Dict, Any
 import uuid
-from src.db.models import DBClient, Subscription
+from db.models import DBClient, Subscription
 
 class Tariff:
     def __init__(self, amount: int, string: str, amount_stars: int, label: str):

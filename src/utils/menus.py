@@ -2,7 +2,7 @@
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from src.utils.utils import SERVERS
+from utils.utils import SERVERS
 
 def main_menu():
     return InlineKeyboardMarkup(
