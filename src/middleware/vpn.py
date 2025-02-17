@@ -11,26 +11,20 @@ class VPNMiddleware(BaseMiddleware):
         self.connections = {}
         
     async def __call__(self, handler, event, data):
-        # VPN API нужен только для определенных операций
         needs_vpn = False
         location = None
 
         if hasattr(event, 'data') and event.data:
-            # Проверяем, нужен ли VPN для текущей операции
             if event.data.startswith("payment_"):
-                # Для payment_ не создаем соединение, только для check_payment
                 needs_vpn = False
             elif event.data.startswith("check_"):
                 needs_vpn = True
-                # Для проверки платежа локация должна быть в метаданных платежа
                 if "_payment_" in event.data:
-                    # Локацию получим позже из данных платежа
                     pass
             elif event.data.startswith("location_"):
                 location = event.data.split("_")[1]
                 needs_vpn = True
 
-        # Если это успешный платеж
         if hasattr(event, 'successful_payment') and event.successful_payment is not None:
             needs_vpn = True
             try:
@@ -57,12 +51,9 @@ class VPNMiddleware(BaseMiddleware):
         try:
             return await handler(event, data)
         finally:
-            # Не закрываем соединения после каждого запроса,
-            # они будут закрыты при завершении работы бота
             pass
 
     async def close_all(self):
-        """Закрыть все соединения"""
         for location, connection in self.connections.items():
             try:
                 await connection.close()

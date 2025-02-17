@@ -131,10 +131,4 @@ TARIFFS_DATA = {
     12: Tariff(amount=1800, string="месяцев", amount_stars=1, label="Подписка на 12 месяцев"),
 }
 
-# SERVERS = {
-#     "NL": Server(location="NL", description="🇳🇱 Нидерланды", tariffs=TARIFFS_DATA),
-#     "DE": Server(location="DE", description="🇩🇪 Германия", tariffs=TARIFFS_DATA),
-#     "US": Server(location="US", description="🇺🇸 США", tariffs=TARIFFS_DATA),
-# }
-
 SERVERS = get_servers_from_config()

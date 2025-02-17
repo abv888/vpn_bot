@@ -1,5 +1,3 @@
-# handlers/help.py
-
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from utils.menus import help_menu, help_device

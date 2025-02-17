@@ -5,10 +5,8 @@ from .subscription import subscription_router
 from .referral import referral_router
 from .payment import payment_router
 
-# Создаем общий роутер
 router = Router()
 
-# Включаем все роутеры
 router.include_router(start_router)
 router.include_router(help_router)
 router.include_router(subscription_router)

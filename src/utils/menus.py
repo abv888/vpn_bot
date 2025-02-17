@@ -1,5 +1,3 @@
-# menus.py
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from utils.utils import SERVERS

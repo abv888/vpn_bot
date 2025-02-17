@@ -1,5 +1,3 @@
-# handlers/referral.py
-
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from db.db_operations import get_client_from_db

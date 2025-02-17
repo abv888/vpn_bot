@@ -1,5 +1,3 @@
-# vpn_panel.py
-
 import json
 import aiohttp
 import uuid
@@ -22,7 +20,6 @@ class VPNConfig:
             raise
 
     def get_config(self, location: str) -> dict:
-        """Получить конфигурацию для конкретной локации"""
         config = self.vpn_configs.get(location)
         if not config:
             raise ValueError(f"Конфигурация для локации {location} не найдена")
@@ -161,7 +158,6 @@ class VPNPanelAPI:
             return None
 
     async def configure_link(self, client: Client):
-        """Generate a connection link for a client."""
         vpn_connection_string = (
             f"{client.protocol}://{client.client_id}@{self.config['domen']}:{client.port}"
             f"?type={client.network}&security={client.security}&pbk={self.config['pbk']}&fp=chrome&sni=google.com&sid={self.config['sid']}&spx=%2F"
@@ -170,5 +166,4 @@ class VPNPanelAPI:
         return vpn_connection_string
 
     async def close(self):
-        """Close the session to avoid resource leaks."""
         await self.session.close()

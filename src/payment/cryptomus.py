@@ -4,8 +4,6 @@ import hashlib
 import base64
 import aiohttp
 
-# session = requests.Session()
-
 def generate_headers(data: str):
     api_key = getenv("CRYPTOMUS_API_KEY")
     merchant_id = getenv("CRYPTOMUS_MERCHANT_ID")
@@ -13,7 +11,6 @@ def generate_headers(data: str):
     if not api_key or not merchant_id:
         raise ValueError("API_KEY или MERCHANT_ID не установлены")
 
-    # Создаем подпись
     sign = hashlib.md5(
         (base64.b64encode(data.encode("ascii")) + api_key.encode("ascii"))
     ).hexdigest()
