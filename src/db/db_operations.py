@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 async_session = async_sessionmaker(bind=async_engine, expire_on_commit=False)
 
-async def add_client_to_db(email: str, telegram_id: int, name: str, referral_code: str, referred_by=None):
+async def add_client_to_db(telegram_id: int):
     try:
         async with async_session() as session:
             logger.info(f"Checking if user {telegram_id} already exists in the database.")
@@ -26,17 +26,16 @@ async def add_client_to_db(email: str, telegram_id: int, name: str, referral_cod
             if existing_client:
                 logger.warning(f"User {telegram_id} already exists in the database.")
                 return False
-            logger.info(
-                f"Adding new user {telegram_id} to the database. "
-                f"Name: {name}, Email: {email}, Referral Code: {referral_code}."
-            )
+
+            logger.info(f"Adding new user {telegram_id} to the database.")
             new_client = DBClient(
-                email=email,
                 telegram_id=telegram_id,
-                name=name,
-                referral_code=referral_code,
+                referral_code=str(uuid.uuid4().hex),
+                email=None,
+                name=None,
                 referred_users=[],
-                referred_by=referred_by
+                referred_by=None,
+                discount=0.0
             )
             session.add(new_client)
             await session.commit()
@@ -69,6 +68,45 @@ async def get_client_from_db(telegram_id=None, referral_code=None) -> Optional[D
         else:
             logger.warning(f"Client not found in the database. Telegram ID: {telegram_id}, Referral Code: {referral_code}")
         return client
+    
+
+async def update_client_in_db(telegram_id: int, email: str = None, name: str = None, referred_by: str = None):
+    try:
+        async with async_session() as session:
+            logger.info(f"Updating user {telegram_id} in the database.")
+            
+            update_data = {}
+            if email is not None:
+                update_data['email'] = email
+            if name is not None:
+                update_data['name'] = name
+            if referred_by is not None:
+                update_data['referred_by'] = referred_by
+
+            if not update_data:
+                logger.warning("No data provided for update")
+                return False
+
+            result = await session.execute(
+                update(DBClient)
+                .where(DBClient.telegram_id == telegram_id)
+                .values(**update_data)
+            )
+            await session.commit()
+
+            if result.rowcount > 0:
+                logger.info(f"User {telegram_id} updated successfully.")
+                return True
+            else:
+                logger.warning(f"User {telegram_id} not found for update.")
+                return False
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while updating user {telegram_id}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error while updating user {telegram_id}: {e}")
+        return False
 
     
 async def add_subscription_to_profile(telegram_id: int, subscription: Subscription):
@@ -79,7 +117,7 @@ async def add_subscription_to_profile(telegram_id: int, subscription: Subscripti
         client = result.scalar_one_or_none()
         if client:
             updated_subscriptions: List[dict] = client.subscriptions or []
-            expiry_date = datetime.now() + timedelta(days=30 * int(subscription.expiry_time))
+            expiry_date = datetime.now() + timedelta(days=int(subscription.expiry_time))
             subscription.expiry_time = expiry_date.strftime("%d.%m.%Y %H:%M:%S")
             updated_subscriptions.append(subscription.to_dict())
             await session.execute(

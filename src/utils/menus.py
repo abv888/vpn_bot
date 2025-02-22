@@ -27,7 +27,7 @@ def main_menu():
             ],
             [
                 InlineKeyboardButton(
-                    text="VPN — бесплатно",
+                    text="VPN — бесплатно (7 дней)",
                     callback_data="free_vpn"
                 )
             ]
@@ -76,7 +76,7 @@ def help_menu():
             [
                 InlineKeyboardButton(
                     text="Чат с поддержкой",
-                    url="https://t.me/Alice_VPN_support"
+                    url="https://t.me/shadowgate_support"
                 )
             ],
             [
@@ -112,31 +112,31 @@ def help_device():
             [
                 InlineKeyboardButton(
                     text="iPhone",
-                    url="https://t.me/Alice_VPN_support"
+                    url="https://teletype.in/@rmot/9Da58YDAqje"
                 )
             ],
             [
                 InlineKeyboardButton(
                     text="Android",
-                    url="https://t.me/Alice_VPN_support"
+                    url="https://teletype.in/@rmot/Iuw3-iJU0NV"
                 )
             ],
             [
                 InlineKeyboardButton(
                     text="Mac",
-                    url="https://t.me/Alice_VPN_support"
+                    url="https://teletype.in/@rmot/9Da58YDAqje"
                 )
             ],
             [
                 InlineKeyboardButton(
                     text="Windows",
-                    url="https://t.me/Alice_VPN_support"
+                    url="https://wiki.aeza.net/nekoray-universal-client"
                 )
             ],
             [
                 InlineKeyboardButton(
                     text="Чат с поддержкой",
-                    url="https://t.me/Alice_VPN_support"
+                    url="https://t.me/shadowgate_support"
                 )
             ],
             [

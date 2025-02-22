@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from utils.menus import main_menu, location_menu
-from db.db_operations import add_client_to_db, get_client_from_db
+from db.db_operations import add_client_to_db, get_client_from_db, update_client_in_db
 from utils.utils import UserData
 import uuid
 import logging
@@ -14,6 +14,7 @@ start_router = Router()
 @start_router.message(F.text == "/start")
 async def send_welcome(message: Message):
     logger.info(f"User {message.from_user.id} started the bot.")
+    await add_client_to_db(message.from_user.id)
     await message.answer("ShadowGate — Ваш лучший VPN сервис!", reply_markup=main_menu())
 
 @start_router.message(F.text == "/menu")
@@ -37,7 +38,7 @@ async def main_menu_callback(call: CallbackQuery):
 async def ask_for_email(call: CallbackQuery, state: FSMContext):
     logger.info(f"User {call.from_user.id} selected 'Connect VPN'.")
     client = await get_client_from_db(telegram_id=call.from_user.id)
-    if client:
+    if client and client.email:
         await call.message.edit_text("Выберите локацию:", reply_markup=location_menu())
     else:
         await call.message.edit_text("Пожалуйста, введите вашу электронную почту:")
@@ -77,12 +78,11 @@ async def handle_referral_code(message: Message, state: FSMContext):
         name = user_data.get("name")
         email = user_data.get("email")
         logger.info(f"Referral code {referral_code} is valid. Referrer: {referrer.telegram_id}")
-        await add_client_to_db(
-            email=email,
-            telegram_id=message.from_user.id,
-            name=name,
-            referred_by=referral_code,
-            referral_code=uuid.uuid4().hex
+        await update_client_in_db(
+        telegram_id=message.from_user.id,
+        email=email,
+        referred_by=referral_code,
+        name=name
         )
         await state.clear()
         await message.answer("Ваши данные успешно сохранены. Выберите локацию:", reply_markup=location_menu())
@@ -104,13 +104,12 @@ async def skip_referral_code(call: CallbackQuery, state: FSMContext):
     email = user_data.get("email")
     referred_by = None 
     logger.info(f"User {call.from_user.id} skipped referral code. Name: {name}, Email: {email}")
-    client_added = await add_client_to_db(
-        email=email,
+    client_added = await update_client_in_db(
         telegram_id=call.from_user.id,
-        name=name,
+        email=email,
         referred_by=referred_by,
-        referral_code=uuid.uuid4().hex
-    )
+        name=name
+        )
     if not client_added:
         logger.info(f"User {call.from_user.id} already exists in the database.")
     else:

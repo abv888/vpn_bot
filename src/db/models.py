@@ -1,9 +1,9 @@
 import enum
 from os import getenv
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
-from sqlalchemy import Column, Float, Integer, String, Text, JSON
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import BigInteger, Column, Float, Integer, String, JSON
 
 Base = declarative_base()
 
@@ -30,10 +30,10 @@ class ReferralStatus(str, enum.Enum):
 class DBClient(Base):
     __tablename__ = 'clients'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
-    name = Column(String, nullable=False, unique=True)
-    email = Column(String, nullable=False, unique=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
+    name = Column(String, nullable=True, unique=True)
+    email = Column(String, nullable=True, unique=True)
     subscriptions = Column(JSON, default=[])
     referral_code = Column(String, unique=True, nullable=True)
     referred_by = Column(String, nullable=True)

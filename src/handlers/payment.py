@@ -236,7 +236,7 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                     subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
-                        expiry_time=payload.get('months'),
+                        expiry_time=30 * payload.get('months'),
                         qr=f"users/qr/{client.client_id}.png",
                         link=link
                     ))
@@ -319,7 +319,7 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                     subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
-                        expiry_time=payload.get('months'),
+                        expiry_time=30 * payload.get('months'),
                         qr=f"users/qr/{client.client_id}.png",
                         link=link
                     ))
@@ -382,7 +382,7 @@ async def success_payment_handler(message: Message, bot: Bot, vpn_api: VPNPanelA
         subscription=Subscription(
             subscription_id=client.client_id,
             location=payload.get('location'),
-            expiry_time=payload.get('months'),
+            expiry_time=30 * payload.get('months'),
             qr=f"users/qr/{client.client_id}.png",
             link=link
         ))

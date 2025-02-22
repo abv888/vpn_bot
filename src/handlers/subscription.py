@@ -1,7 +1,11 @@
 from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from aiogram.fsm.context import FSMContext
-from db.db_operations import get_client_from_db
+from aiogram.enums import ParseMode
+from api_manager.vpn_panel import VPNPanelAPI
+from db.db_operations import add_subscription_to_profile, confirm_referral, get_client_from_db
+from db.models import Subscription
+from utils.qr_generator import create_qr_with_logo
 from utils.utils import SERVERS, show_subscription
 from utils.menus import tariff_menu
 import logging
@@ -106,3 +110,46 @@ async def location_selected(call: CallbackQuery):
     location = call.data.split("_")[1]
     logger.info(f"User {call.from_user.id} selected location: {location}.")
     await call.message.edit_text("Выберите тариф:", reply_markup=tariff_menu(location))
+
+@subscription_router.callback_query(F.data == "free_vpn")
+async def free_vpn_sender(call :CallbackQuery, bot: Bot):
+    vpn_api = VPNPanelAPI(location="NL")
+    try:
+        await vpn_api.add_client(
+                        day=int(7),
+                        email=f"{call.from_user.username}-NL-Test",
+                        id=call.from_user.id
+                    )           
+        client = await vpn_api.get_client(
+            client_email=f"{call.from_user.id}-{call.from_user.username}-NL-Test"
+        )
+        link = await vpn_api.configure_link(client=client)
+        create_qr_with_logo(
+            data=link,
+            file_path=f"users/qr/{client.client_id}.png"
+        )
+        await bot.delete_message(
+            chat_id=call.message.chat.id, 
+            message_id=call.message.message_id
+        )
+        await bot.send_photo(
+            chat_id=call.from_user.id,
+            photo=FSInputFile(f"users/qr/{client.client_id}.png"),
+            caption=f"<code>{link}</code>",
+            parse_mode=ParseMode.HTML
+        )
+        await add_subscription_to_profile(
+            telegram_id=call.from_user.id, 
+            subscription=Subscription(
+                subscription_id=client.client_id,
+                location='NL',
+                expiry_time=7,
+                qr=f"users/qr/{client.client_id}.png",
+                link=link
+            ))
+        await confirm_referral(referral_telegram_id=call.from_user.id)
+    except Exception as e:
+        await bot.send_message(
+            chat_id=call.from_user.id,
+            text="Вы уже использовали бесплатный период!"
+        )
