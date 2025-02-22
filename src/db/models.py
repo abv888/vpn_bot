@@ -41,7 +41,7 @@ class DBClient(Base):
     discount = Column(Float, default=0.0)
 
 async_engine = create_async_engine(
-    f"postgresql+asyncpg://{getenv("DB_USER")}:{getenv("DB_PASSWORD")}@{getenv("DB_HOST")}:5432/{getenv("DB_NAME")}",
+    f"postgresql+asyncpg://{getenv('DB_USER')}:{getenv('DB_PASSWORD')}@{getenv('DB_HOST')}:5432/{getenv('DB_NAME')}",
     echo=True,
     pool_pre_ping=True,
     pool_recycle=1800
