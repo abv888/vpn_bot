@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import json
 from os import getenv
 from aiogram.fsm.state import State, StatesGroup
@@ -44,16 +45,31 @@ class SubscriptionNavigation(StatesGroup):
     viewing = State()
 
 def get_servers_from_config():
-    vpn_configs = json.loads(getenv("VPN"))
-    servers = {}
+    vpn_config = getenv("VPN")
+    if not vpn_config:
+        logger.error("VPN configuration not found in environment variables")
+        return {}
     
-    for location, config in vpn_configs.items():
-        servers[location] = Server(
-            location=location,
-            description=get_location_description(location),  # Добавим эту функцию
-            tariffs=TARIFFS_DATA
-        )
-    return servers
+    try:
+        if isinstance(vpn_config, (bytes, bytearray)):
+            vpn_config = vpn_config.decode('utf-8')
+        
+        vpn_configs = json.loads(vpn_config)
+        servers = {}
+        
+        for location, config in vpn_configs.items():
+            servers[location] = Server(
+                location=location,
+                description=get_location_description(location),
+                tariffs=TARIFFS_DATA
+            )
+        return servers
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse VPN configuration: {e}")
+        return {}
+    except Exception as e:
+        logger.error(f"Error in get_servers_from_config: {e}")
+        return {}
 
 def get_location_description(location: str) -> str:
     """Получает описание локации с флагом"""
