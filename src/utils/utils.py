@@ -45,7 +45,7 @@ class SubscriptionNavigation(StatesGroup):
     viewing = State()
 
 def get_servers_from_config():
-    vpn_config = getenv("VPN")
+    vpn_config = getenv('VPN')
     if not vpn_config:
         logger.error("VPN configuration not found in environment variables")
         return {}
