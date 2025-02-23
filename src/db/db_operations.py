@@ -19,7 +19,7 @@ async def add_client_to_db(telegram_id: int):
             
             # Проверяем, существует ли пользователь
             existing_client_query = await session.execute(
-                select(DBClient).where(DBClient.telegram_id == telegram_id)
+                select(DBClient).where(DBClient.telegram_id == int(telegram_id))
             )
             existing_client = existing_client_query.scalar_one_or_none()
 
@@ -51,7 +51,7 @@ async def get_client_from_db(telegram_id=None, referral_code=None) -> Optional[D
         if telegram_id:
             logger.info(f"Fetching client from database by Telegram ID: {telegram_id}")
             result = await session.execute(
-                select(DBClient).where(DBClient.telegram_id == telegram_id)
+                select(DBClient).where(DBClient.telegram_id == int(telegram_id))
             )
         elif referral_code:
             logger.info(f"Fetching client from database by Referral Code: {referral_code}")
@@ -89,7 +89,7 @@ async def update_client_in_db(telegram_id: int, email: str = None, name: str = N
 
             result = await session.execute(
                 update(DBClient)
-                .where(DBClient.telegram_id == telegram_id)
+                .where(DBClient.telegram_id == int(telegram_id))
                 .values(**update_data)
             )
             await session.commit()
@@ -112,7 +112,7 @@ async def update_client_in_db(telegram_id: int, email: str = None, name: str = N
 async def add_subscription_to_profile(telegram_id: int, subscription: Subscription):
     async with async_session() as session:
         result = await session.execute(
-            select(DBClient).where(DBClient.telegram_id == telegram_id)
+            select(DBClient).where(DBClient.telegram_id == int(telegram_id))
         )
         client = result.scalar_one_or_none()
         if client:
@@ -122,7 +122,7 @@ async def add_subscription_to_profile(telegram_id: int, subscription: Subscripti
             updated_subscriptions.append(subscription.to_dict())
             await session.execute(
                 update(DBClient)
-                .where(DBClient.telegram_id == telegram_id)
+                .where(DBClient.telegram_id == int(telegram_id))
                 .values(subscriptions=updated_subscriptions)
             )
             await session.commit()
@@ -130,15 +130,38 @@ async def add_subscription_to_profile(telegram_id: int, subscription: Subscripti
             raise ValueError(f"Клиент с telegram_id {telegram_id} не найден.")
         
 async def add_referral_to_referrer(referrer_telegram_id: int, referral_telegram_id: int):
-    async with async_session() as session:
-        referrer = await session.execute(
-            select(DBClient).where(DBClient.telegram_id == referrer_telegram_id)
-        ).scalar_one_or_none()
-        if referrer:
-            if not any(r["telegram_id"] == referral_telegram_id for r in referrer.referred_users):
-                referrer.referred_users.append({"telegram_id": referral_telegram_id, "status": "registered"})
-                await session.commit()
-                logger.info(f"Added referral {referral_telegram_id} to referrer {referrer_telegram_id} with status 'registered'.")
+    try:
+        async with async_session() as session:
+            logger.info(f"Adding referral {referral_telegram_id} to referrer {referrer_telegram_id}")
+            
+            # Изменяем способ получения результата запроса
+            query = select(DBClient).where(DBClient.telegram_id == int(referrer_telegram_id))
+            result = await session.execute(query)
+            referrer = result.scalar()  # Используем scalar() вместо scalar_one_or_none()
+            
+            if referrer:
+                logger.info(f"Found referrer, current referred_users: {referrer.referred_users}")
+                
+                # Проверяем, существует ли уже такой реферал
+                if not referrer.referred_users:
+                    referrer.referred_users = []
+                
+                if not any(r.get("telegram_id") == int(referral_telegram_id) for r in referrer.referred_users):
+                    referrer.referred_users.append({
+                        "telegram_id": int(referral_telegram_id), 
+                        "status": "registered"
+                    })
+                    await session.commit()
+                    logger.info(f"Successfully added referral. Updated referred_users: {referrer.referred_users}")
+                else:
+                    logger.info("Referral already exists in the list")
+            else:
+                logger.error(f"Referrer with telegram_id {referrer_telegram_id} not found")
+                
+    except Exception as e:
+        logger.error(f"Error in add_referral_to_referrer: {str(e)}")
+        # Перевыбрасываем исключение, чтобы обработать его на уровне выше
+        raise
 
 async def confirm_referral(referral_telegram_id: int):
     async with async_session() as session:

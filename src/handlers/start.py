@@ -70,30 +70,54 @@ async def save_user_data(message: Message, state: FSMContext):
 
 @start_router.message(UserData.waiting_for_referral)
 async def handle_referral_code(message: Message, state: FSMContext):
-    referral_code = message.text.strip()
-    logger.info(f"User {message.from_user.id} entered referral code: {referral_code}")
-    referrer = await get_client_from_db(referral_code=referral_code)
-    if referrer:
-        user_data = await state.get_data()
-        name = user_data.get("name")
-        email = user_data.get("email")
-        logger.info(f"Referral code {referral_code} is valid. Referrer: {referrer.telegram_id}")
-        await update_client_in_db(
-        telegram_id=message.from_user.id,
-        email=email,
-        referred_by=referral_code,
-        name=name
-        )
-        await add_referral_to_referrer(
-            referrer_telegram_id=referrer.telegram_id,  
-            referral_telegram_id=message.from_user.id
-        )
-        await state.clear()
-        await message.answer("Ваши данные успешно сохранены. Выберите локацию:", reply_markup=location_menu())
-    else:
-        logger.warning(f"Invalid referral code entered by user {message.from_user.id}: {referral_code}")
+    try:
+        referral_code = message.text.strip()
+        logger.info(f"User {message.from_user.id} entered referral code: {referral_code}")
+        
+        referrer = await get_client_from_db(referral_code=referral_code)
+        if referrer:
+            user_data = await state.get_data()
+            name = user_data.get("name")
+            email = user_data.get("email")
+            logger.info(f"Referral code {referral_code} is valid. Referrer: {referrer.telegram_id}")
+            
+            # Обновляем данные клиента
+            await update_client_in_db(
+                telegram_id=message.from_user.id,
+                email=email,
+                name=name,
+                referred_by=referral_code
+            )
+            
+            try:
+                # Добавляем реферала
+                await add_referral_to_referrer(
+                    referrer_telegram_id=referrer.telegram_id,
+                    referral_telegram_id=message.from_user.id
+                )
+            except Exception as e:
+                logger.error(f"Error adding referral: {str(e)}")
+                # Даже если произошла ошибка с рефералом, позволяем пользователю продолжить
+            
+            await state.clear()
+            await message.answer(
+                "Ваши данные успешно сохранены. Выберите локацию:", 
+                reply_markup=location_menu()
+            )
+        else:
+            logger.warning(f"Invalid referral code entered by user {message.from_user.id}: {referral_code}")
+            await message.answer(
+                "Неверный реферальный код. Попробуйте ещё раз или нажмите 'Пропустить'.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [InlineKeyboardButton(text="Пропустить", callback_data="skip_referral")]
+                    ]
+                )
+            )
+    except Exception as e:
+        logger.error(f"Error in handle_referral_code: {str(e)}")
         await message.answer(
-            "Неверный реферальный код. Попробуйте ещё раз или нажмите 'Пропустить'.",
+            "Произошла ошибка при обработке реферального кода. Попробуйте позже или нажмите 'Пропустить'.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text="Пропустить", callback_data="skip_referral")]
