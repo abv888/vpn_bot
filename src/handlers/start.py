@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from utils.menus import main_menu, location_menu
-from db.db_operations import add_client_to_db, get_client_from_db, update_client_in_db
+from db.db_operations import add_client_to_db, add_referral_to_referrer, get_client_from_db, update_client_in_db
 from utils.utils import UserData
 import uuid
 import logging
@@ -83,6 +83,10 @@ async def handle_referral_code(message: Message, state: FSMContext):
         email=email,
         referred_by=referral_code,
         name=name
+        )
+        await add_referral_to_referrer(
+            referrer_telegram_id=referrer.telegram_id,  
+            referral_telegram_id=message.from_user.id
         )
         await state.clear()
         await message.answer("Ваши данные успешно сохранены. Выберите локацию:", reply_markup=location_menu())
