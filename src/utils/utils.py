@@ -45,7 +45,9 @@ class SubscriptionNavigation(StatesGroup):
     viewing = State()
 
 def get_servers_from_config():
-    vpn_config = getenv('VPN')
+    vpn_config = getenv("VPN")
+    logger.info(f"Raw VPN config: {vpn_config}")  # Добавим это
+    
     if not vpn_config:
         logger.error("VPN configuration not found in environment variables")
         return {}
@@ -53,6 +55,8 @@ def get_servers_from_config():
     try:
         if isinstance(vpn_config, (bytes, bytearray)):
             vpn_config = vpn_config.decode('utf-8')
+        
+        logger.info(f"VPN config type: {type(vpn_config)}")  # И это
         
         vpn_configs = json.loads(vpn_config)
         servers = {}
@@ -66,9 +70,11 @@ def get_servers_from_config():
         return servers
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse VPN configuration: {e}")
+        logger.error(f"Problematic JSON string: {vpn_config}")  # И это
         return {}
     except Exception as e:
         logger.error(f"Error in get_servers_from_config: {e}")
+        logger.error(f"VPN config causing error: {vpn_config}")  # И это
         return {}
 
 def get_location_description(location: str) -> str:
