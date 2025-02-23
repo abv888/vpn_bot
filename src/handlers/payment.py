@@ -323,11 +323,11 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                 )
                 print("Щас будет метод add_subscription_to_profile ")
                 await add_subscription_to_profile(
-                    telegram_id=int(user_id_str), 
+                    telegram_id=payload.get("telegram_id"), 
                     subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
-                        expiry_time=30 * payload.get('months'),
+                        expiry_time = 30 * int(payload.get('months')),
                         qr=f"users/qr/{client.client_id}.png",
                         link=link
                     ))
