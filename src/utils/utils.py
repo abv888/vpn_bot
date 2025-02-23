@@ -46,7 +46,8 @@ class SubscriptionNavigation(StatesGroup):
 
 def get_servers_from_config():
     vpn_config = getenv("VPN")
-    logger.info(f"Raw VPN config: {vpn_config}")  # Добавим это
+    print(f"Raw VPN config: {vpn_config}")
+    logger.info(f"Raw VPN config: {vpn_config}")
     
     if not vpn_config:
         logger.error("VPN configuration not found in environment variables")
