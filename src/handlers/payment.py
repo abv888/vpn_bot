@@ -129,7 +129,7 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
             'capture': True,
             'metadata': {
                 'method': method,
-                'telegram_id': call.from_user.id,
+                'telegram_id': str(call.from_user.id),
                 'username': call.from_user.username,
                 'location': location,
                 'months': months
@@ -191,6 +191,7 @@ async def cancel_payment(call: CallbackQuery, bot: Bot):
 async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
     method = call.data.split("_")[1]
     payment_id = call.data.split("_")[-1]
+    user_id_str = str(call.from_user.id)
     logger.info(f"Checking payment status for user {call.from_user.id} via {method}.")
     
     if method == "cryptomus":
@@ -225,14 +226,14 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                 )
                 
                 await bot.send_photo(
-                    chat_id=payload.get("telegram_id"),
+                    chat_id=int(payload.get("telegram_id")),
                     photo=FSInputFile(f"users/qr/{client.client_id}.png"),
                     caption=f"<code>{link}</code>",
                     parse_mode=ParseMode.HTML
                 )
                 
                 await add_subscription_to_profile(
-                    telegram_id=call.from_user.id, 
+                    telegram_id=int(user_id_str), 
                     subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
@@ -241,7 +242,7 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                         link=link
                     ))
                 
-                await confirm_referral(referral_telegram_id=call.from_user.id)
+                await confirm_referral(referral_telegram_id=int(user_id_str))
             
             elif status == "check":
                 if call.message.text != "Ожидание появления платежа в блокчейне...":
@@ -281,10 +282,12 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
     
     elif method == "yookassa":
         try:
+            user_id_str = str(call.from_user.id)
             payment = yookassa.Payment.find_one(payment_id=payment_id)
             if payment.status == "succeeded":
                 payload = payment.metadata
                 client_id = str(uuid.uuid4())
+
                 
                 await vpn_api.add_client(
                     day=int(payload.get("months")) * 30,
