@@ -7,9 +7,8 @@ import yookassa
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv, find_dotenv
 
-from db.models import init_db
-from handlers import router
-from middleware.vpn import VPNMiddleware
+
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +20,10 @@ env_path =Path('.env')
 logger.info(f"File exists: {env_path.exists()}")
 
 load_dotenv(env_path)
+
+from db.models import init_db
+from handlers import router
+from middleware.vpn import VPNMiddleware
 
 logger.info("Checking environment variables:")
 logger.info(f"DB_USER: {'Set' if getenv('DB_USER') else 'Not set'}")
