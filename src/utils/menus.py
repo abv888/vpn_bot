@@ -154,10 +154,10 @@ def payment_methods(location, months):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text="💳 Банковская карта",
-                    callback_data=f"payment_card_{location}_{months}"
-                ),
+                # InlineKeyboardButton(
+                #     text="💳 Банковская карта",
+                #     callback_data=f"payment_card_{location}_{months}"
+                # ),
                 InlineKeyboardButton(
                     text="💳 ЮMoney",
                     callback_data=f"payment_yookassa_{location}_{months}"
