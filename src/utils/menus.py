@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from db.db_operations import get_client_from_db
 from utils.utils import SERVERS
 
 def main_menu():
@@ -48,12 +49,13 @@ def location_menu():
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def tariff_menu(
-        selected_location
+        selected_location, discount
 ):
     server = SERVERS.get(selected_location)
+        
     buttons = [
         [InlineKeyboardButton(
-            text=f"{months} {tariff.string} — {tariff.amount} руб.",
+            text=f"{months} {tariff.string} — {tariff.amount - (tariff.amount * discount)} руб.",
             callback_data=f"tariff_{months}_{selected_location}"
         )]
         for months, tariff in server.tariffs.items()

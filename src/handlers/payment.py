@@ -54,6 +54,11 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
     months = int(call.data.split("_")[3])
     server = SERVERS.get(location)
     tariff = server.tariffs[months]
+    discount = 0
+
+    client = await get_client_from_db(telegram_id=call.from_user.id)
+    if client:
+        discount = client.discount / 100
     
     logger.info(f"User {call.from_user.id} selected payment method: {method}.")
     
@@ -71,9 +76,9 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
             }),
             provider_token="",
             currency="XTR",
-            prices=[LabeledPrice(label=tariff.label, amount=tariff.amount_stars)],
+            prices=[LabeledPrice(label=tariff.label, amount=tariff.amount_stars - (tariff.amount_stars * discount))],
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"Оплатить ⭐️ {tariff.amount_stars}", pay=True)],
+                [InlineKeyboardButton(text=f"Оплатить ⭐️ {tariff.amount_stars - (tariff.amount_stars * discount)}", pay=True)],
                 [InlineKeyboardButton(text="🚫 Отменить оплату", callback_data=f"cancel_payment_{method}")]
             ])
         )
@@ -92,9 +97,9 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
             }),
             provider_token=getenv("YOOKASSA_PAYMENT_PROVIDER_TOKEN"),
             currency="RUB",
-            prices=[LabeledPrice(label=tariff.label, amount=tariff.amount * 100)],
+            prices=[LabeledPrice(label=tariff.label, amount=(tariff.amount - (tariff.amount * discount)) * 100)],
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"Оплатить {tariff.amount} рублей", pay=True)],
+                [InlineKeyboardButton(text=f"Оплатить {tariff.amount - (tariff.amount * discount)} рублей", pay=True)],
                 [InlineKeyboardButton(text="🚫 Отменить оплату", callback_data=f"cancel_payment_{method}")]
             ])
         )
@@ -103,7 +108,7 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
         invoice_id = str(uuid.uuid4())
         payment = yookassa.Payment.create({
             "amount": {
-                'value': tariff.amount,
+                'value': tariff.amount - (tariff.amount * discount),
                 'currency': "RUB"
             },
             "receipt": {
@@ -114,7 +119,7 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
                     "description": f"Выбранный тариф:\n\n{server.description}\n{tariff.label}",
                     "quantity": 1.000,
                     "amount": {
-                        "value": tariff.amount,
+                        "value": tariff.amount - (tariff.amount * discount),
                         "currency": "RUB"
                     },
                     "vat_code": 1,
@@ -144,7 +149,7 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
             call.message.chat.id,
             text=f"Выбранный тариф:\n\n{server.description}\n{tariff.label}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"Оплатить {tariff.amount} рублей", url=payment_url)],
+                [InlineKeyboardButton(text=f"Оплатить {tariff.amount - (tariff.amount * discount)} рублей", url=payment_url)],
                 [InlineKeyboardButton(text="Проверить оплату", callback_data=f"check_yookassa_payment_{payment_id}")],
                 [InlineKeyboardButton(text="🚫 Отменить оплату", callback_data=f"cancel_payment_{method}")]
             ])
@@ -153,7 +158,7 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
     elif method == "cryptomus":
         payment_id = str(uuid.uuid4())
         invoice = await create_cryptomus_invoice(
-            amount=str(tariff.amount),
+            amount=str(tariff.amount - (tariff.amount * discount)),
             payment_id=payment_id,
             telegram_id=call.message.chat.id,
             username=call.from_user.username,
@@ -316,9 +321,9 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                     caption=f"<code>{link}</code>",
                     parse_mode=ParseMode.HTML
                 )
-                
+                print("Щас будет метод add_subscription_to_profile ")
                 await add_subscription_to_profile(
-                    telegram_id=call.from_user.id, 
+                    telegram_id=int(user_id_str), 
                     subscription=Subscription(
                         subscription_id=client.client_id,
                         location=payload.get('location'),
@@ -326,7 +331,7 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                         qr=f"users/qr/{client.client_id}.png",
                         link=link
                     ))
-                
+                print("Щас будет метод confirm_referral ")
                 await confirm_referral(referral_telegram_id=call.from_user.id)
             
             elif payment.status == "pending":

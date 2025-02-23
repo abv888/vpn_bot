@@ -28,7 +28,6 @@ async def show_referrals(call: CallbackQuery):
     referred_users = client.referred_users or []
     referral_code = client.referral_code
     discount = client.discount or 0
-    logger.info(f"User {call.from_user.id} has {len(referred_users)} referred users and a discount of {discount}%.")
     
     if not referred_users:
         referral_text = (
@@ -37,7 +36,6 @@ async def show_referrals(call: CallbackQuery):
             "У вас пока нет приглашенных пользователей.\n"
             "Приглашайте друзей и получайте скидки на подписки!"
         )
-        logger.info(f"User {call.from_user.id} has no referred users.")
     else:
         referral_text = (
             f"<b>Мои рефералы:</b>\n"
@@ -45,12 +43,18 @@ async def show_referrals(call: CallbackQuery):
             f"Ваша скидка: {client.discount}%\n\n"
             f"<b>Приглашенные пользователи:</b> {len(referred_users)}\n\n"
         )
-        referral_details = []      
+        
+        # Получаем информацию о каждом реферале
+        referral_details = []
         for index, referral in enumerate(referred_users, start=1):
-            status = "Подтвержден" if referral.get("confirmed") else "Зарегистрирован"
+            # Получаем данные реферала из базы
+            referral_client = await get_client_from_db(telegram_id=referral.get("telegram_id"))
+            name = referral_client.name if referral_client else "Имя не указано"
+            email = referral_client.email if referral_client else "Email не указан"
+            status = "✅ Подтвержден" if referral.get("status") == "confirmed" else "⏳ Ожидает подтверждения"
+            
             referral_details.append(
-                f"{index}. {referral.get('name', 'Имя не указано')} "
-                f"({referral.get('email', 'Email не указан')}) — <b>{status}</b>"
+                f"{index}. {name} ({email}) — <b>{status}</b>"
             )
         referral_text += "\n".join(referral_details)
 

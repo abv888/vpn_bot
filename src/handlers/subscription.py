@@ -108,8 +108,12 @@ async def delete_qr_code(call: CallbackQuery, state: FSMContext, bot: Bot):
 @subscription_router.callback_query(F.data.startswith("location_"))
 async def location_selected(call: CallbackQuery):
     location = call.data.split("_")[1]
+    discount = 0
+    client = await get_client_from_db(telegram_id=call.from_user.id)
+    if client:
+        discount = client.discount / 100
     logger.info(f"User {call.from_user.id} selected location: {location}.")
-    await call.message.edit_text("Выберите тариф:", reply_markup=tariff_menu(location))
+    await call.message.edit_text("Выберите тариф:", reply_markup=tariff_menu(selected_location=location, discount=discount))
 
 @subscription_router.callback_query(F.data == "free_vpn")
 async def free_vpn_sender(call :CallbackQuery, bot: Bot):

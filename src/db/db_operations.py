@@ -147,14 +147,22 @@ async def add_referral_to_referrer(referrer_telegram_id: int, referral_telegram_
                     referrer.referred_users = []
                 
                 if not any(r.get("telegram_id") == int(referral_telegram_id) for r in referrer.referred_users):
-                    referrer.referred_users.append({
-                        "telegram_id": int(referral_telegram_id), 
+                    new_referred_users = referrer.referred_users.copy()
+                    new_referred_users.append({
+                        "telegram_id": int(referral_telegram_id),
                         "status": "registered"
                     })
+                    
+                    # Явно обновляем в базе именно referred_users
+                    stmt = (
+                        update(DBClient)
+                        .where(DBClient.telegram_id == int(referrer_telegram_id))
+                        .values({"referred_users": new_referred_users})
+                    )
+                    await session.execute(stmt)
                     await session.commit()
-                    logger.info(f"Successfully added referral. Updated referred_users: {referrer.referred_users}")
                 else:
-                    logger.info("Referral already exists in the list")
+                    logger.info(f"Referral {referral_telegram_id} already exists in list")
             else:
                 logger.error(f"Referrer with telegram_id {referrer_telegram_id} not found")
                 
@@ -164,25 +172,57 @@ async def add_referral_to_referrer(referrer_telegram_id: int, referral_telegram_
         raise
 
 async def confirm_referral(referral_telegram_id: int):
-    async with async_session() as session:
-        result = await session.execute(
-            select(DBClient).where(DBClient.telegram_id == referral_telegram_id)
-        )
-        referral = result.scalar_one_or_none()
-
-        if referral and referral.referred_by:
+    try:
+        async with async_session() as session:
+            logger.info(f"Starting confirm_referral for user ID {referral_telegram_id}")
+            
+            # Получаем реферала по telegram_id
             result = await session.execute(
-                select(DBClient).where(DBClient.telegram_id == referral.referred_by)
+                select(DBClient).where(DBClient.telegram_id == int(referral_telegram_id))
             )
-            referrer = result.scalar_one_or_none()
-            if referrer:
-                for r in referrer.referred_users:
-                    if r["telegram_id"] == referral_telegram_id and r["status"] == "registered":
-                        r["status"] = "confirmed"
-                        referrer.discount += 5
-                        break
-                await session.commit()
-                logger.info(f"Referral {referral_telegram_id} confirmed for referrer {referrer.telegram_id}. Discount updated to {referrer.discount}.")
-            else:
-                return
+            referral = result.scalar()
+
+            if referral and referral.referred_by:
+                logger.info(f"Found referral with referred_by code: {referral.referred_by}")
+                
+                # Получаем реферера по referral_code
+                referrer_result = await session.execute(
+                    select(DBClient).where(DBClient.referral_code == str(referral.referred_by))
+                )
+                referrer = referrer_result.scalar()
+
+                if referrer:
+                    logger.info(f"Found referrer with ID: {referrer.telegram_id}")
+                    logger.info(f"Current referred_users: {referrer.referred_users}")
+                    
+                    if not referrer.referred_users:
+                        referrer.referred_users = []
+
+                    updated = False
+                    # Проходим по списку и обновляем статус
+                    for r in referrer.referred_users:
+                        if int(r.get("telegram_id", 0)) == int(referral_telegram_id):
+                            r["status"] = "confirmed"  # Принудительно меняем статус
+                            updated = True
+                            break
+
+                    if updated:
+                        # Явно обновляем referred_users в базе
+                        await session.execute(
+                            update(DBClient)
+                            .where(DBClient.telegram_id == referrer.telegram_id)
+                            .values(
+                                referred_users=referrer.referred_users,
+                                discount=referrer.discount + 5
+                            )
+                        )
+                        await session.commit()
+                        logger.info(f"Successfully updated referral status and discount. New referred_users: {referrer.referred_users}")
+                    else:
+                        logger.warning(f"Referral {referral_telegram_id} not found in referred_users list")
+                else:
+                    logger.error(f"Referrer not found for referral code {referral.referred_by}")
+    except Exception as e:
+        logger.error(f"Error in confirm_referral: {str(e)}")
+        logger.error(f"For referral_telegram_id: {referral_telegram_id}")
         
