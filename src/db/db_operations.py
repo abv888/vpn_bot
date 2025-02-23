@@ -5,7 +5,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from utils.utils import generate_referral_code
+from utils.utils import calculate_discount, generate_referral_code
 from .models import AsyncSession, DBClient, Subscription, async_engine
 
 logging.basicConfig(level=logging.INFO)
@@ -176,53 +176,39 @@ async def confirm_referral(referral_telegram_id: int):
         async with async_session() as session:
             logger.info(f"Starting confirm_referral for user ID {referral_telegram_id}")
             
-            # Получаем реферала по telegram_id
             result = await session.execute(
                 select(DBClient).where(DBClient.telegram_id == int(referral_telegram_id))
             )
             referral = result.scalar()
 
             if referral and referral.referred_by:
-                logger.info(f"Found referral with referred_by code: {referral.referred_by}")
-                
-                # Получаем реферера по referral_code
                 referrer_result = await session.execute(
                     select(DBClient).where(DBClient.referral_code == str(referral.referred_by))
                 )
                 referrer = referrer_result.scalar()
 
                 if referrer:
-                    logger.info(f"Found referrer with ID: {referrer.telegram_id}")
-                    logger.info(f"Current referred_users: {referrer.referred_users}")
-                    
                     if not referrer.referred_users:
                         referrer.referred_users = []
 
-                    updated = False
-                    # Проходим по списку и обновляем статус
                     for r in referrer.referred_users:
-                        if int(r.get("telegram_id", 0)) == int(referral_telegram_id):
-                            r["status"] = "confirmed"  # Принудительно меняем статус
-                            updated = True
-                            break
-
-                    if updated:
-                        # Явно обновляем referred_users в базе
-                        await session.execute(
-                            update(DBClient)
-                            .where(DBClient.telegram_id == referrer.telegram_id)
-                            .values(
-                                referred_users=referrer.referred_users,
-                                discount=referrer.discount + 5
-                            )
-                        )
-                        await session.commit()
-                        logger.info(f"Successfully updated referral status and discount. New referred_users: {referrer.referred_users}")
-                    else:
-                        logger.warning(f"Referral {referral_telegram_id} not found in referred_users list")
+                        if str(r.get("telegram_id")) == str(referral_telegram_id):
+                            if r["status"] == "confirmed":
+                                logger.info(f"Referral {referral_telegram_id} already confirmed")
+                                return  
+                            elif r["status"] == "registered":
+                                r["status"] = "confirmed"
+                                if not hasattr(referrer, 'discount'):
+                                    referrer.discount = 0
+                                new_discount = await calculate_discount(referrer)
+                                referrer.discount = new_discount
+                                await session.commit()
+                                logger.info(f"Confirmed referral {referral_telegram_id} and updated discount to {referrer.discount}")
+                                return
+                    
+                    logger.warning(f"Referral {referral_telegram_id} not found in referred_users list")
                 else:
                     logger.error(f"Referrer not found for referral code {referral.referred_by}")
     except Exception as e:
         logger.error(f"Error in confirm_referral: {str(e)}")
-        logger.error(f"For referral_telegram_id: {referral_telegram_id}")
         
