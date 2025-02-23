@@ -1,7 +1,10 @@
 import json
 from aiogram import BaseMiddleware
+import yookassa
 from api_manager.vpn_panel import VPNPanelAPI
 import logging
+
+from payment.cryptomus import check_cryptomus_invoice
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +22,21 @@ class VPNMiddleware(BaseMiddleware):
                 needs_vpn = False
             elif event.data.startswith("check_"):
                 needs_vpn = True
-                if "_payment_" in event.data:
-                    pass
+                # Получаем данные из callback_data
+                method = event.data.split("_")[1]
+                payment_id = event.data.split("_")[-1]
+                
+                try:
+                    if method == "yookassa":
+                        payment = yookassa.Payment.find_one(payment_id=payment_id)
+                        location = payment.metadata.get('location')
+                    elif method == "cryptomus":
+                        invoice = await check_cryptomus_invoice(payment_id=payment_id)
+                        payload = json.loads(invoice["result"]["additional_data"])
+                        location = payload.get('location')
+                except Exception as e:
+                    logger.error(f"Error getting payment data: {e}")
+                    location = "NL"  # Fallback локация
             elif event.data.startswith("location_"):
                 location = event.data.split("_")[1]
                 needs_vpn = True

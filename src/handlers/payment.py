@@ -282,7 +282,7 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
     elif method == "yookassa":
         try:
             payment = yookassa.Payment.find_one(payment_id=payment_id)
-            if payment.status == "pending":
+            if payment.status == "succeeded":
                 payload = payment.metadata
                 client_id = str(uuid.uuid4())
                 
