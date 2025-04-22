@@ -168,10 +168,10 @@ def payment_methods(location, months):
                     text="⭐️ Звёзды",
                     callback_data=f"payment_stars_{location}_{months}"
                 ),
-                InlineKeyboardButton(
-                    text="🪙 Криптовалюта",
-                    callback_data=f"payment_cryptomus_{location}_{months}"
-                )
+                # InlineKeyboardButton(
+                #     text="🪙 Криптовалюта",
+                #     callback_data=f"payment_cryptomus_{location}_{months}"
+                # )
                 
             ],
             [   InlineKeyboardButton(

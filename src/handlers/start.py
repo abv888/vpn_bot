@@ -15,24 +15,27 @@ start_router = Router()
 async def send_welcome(message: Message):
     logger.info(f"User {message.from_user.id} started the bot.")
     await add_client_to_db(message.from_user.id)
-    await message.answer("ShadowGate — Ваш лучший VPN сервис!", reply_markup=main_menu())
+    await message.answer("🥷🏽 Baogrand VPN - продвинутое решение для всех пользователей.\n\n" \
+    "⚡️ высокая скорость\n" \
+    "🔓 доступ к заблокированным сервисам\n" \
+    "💰 оплата картами РФ и криптовалютой", reply_markup=main_menu())
 
 @start_router.message(F.text == "/menu")
 async def menu(message: Message):
     logger.info(f"User {message.from_user.id} accessed the menu.")
     await message.delete()
-    await message.answer(
-        "ShadowGate — Ваш лучший VPN сервис!",
-        reply_markup=main_menu()
-    )
+    await message.answer("🥷🏽 Baogrand VPN - продвинутое решение для всех пользователей.\n\n" \
+    "⚡️ высокая скорость\n" \
+    "🔓 доступ к заблокированным сервисам\n" \
+    "💰 оплата картами РФ и криптовалютой", reply_markup=main_menu())
 
 @start_router.callback_query(F.data == "menu")
 async def main_menu_callback(call: CallbackQuery):
     logger.info(f"User {call.from_user.id} returned to main menu.")
-    await call.message.edit_text(
-        "ShadowGate — Ваш лучший VPN сервис!", 
-        reply_markup=main_menu()
-    )
+    await call.message.edit_text("🥷🏽 Baogrand VPN - продвинутое решение для всех пользователей.\n\n" \
+    "⚡️ высокая скорость\n" \
+    "🔓 доступ к заблокированным сервисам\n" \
+    "💰 оплата картами РФ и криптовалютой", reply_markup=main_menu())
 
 @start_router.callback_query(F.data == "connect_vpn")
 async def ask_for_email(call: CallbackQuery, state: FSMContext):

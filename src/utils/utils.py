@@ -141,10 +141,10 @@ async def generate_referral_code():
     return str(uuid.uuid4())
 
 TARIFFS_DATA = {
-    1: Tariff(amount=300, string="месяц", amount_stars=120, label="Подписка на 1 месяц"),
-    3: Tariff(amount=810, string="месяца", amount_stars=300, label="Подписка на 3 месяца"),
-    6: Tariff(amount=1260, string="месяцев", amount_stars=500, label="Подписка на 6 месяцев"),
-    12: Tariff(amount=1800, string="месяцев", amount_stars=700, label="Подписка на 12 месяцев"),
+    1: Tariff(amount=200, string="месяц", amount_stars=120, label="Подписка на 1 месяц"),
+    3: Tariff(amount=540, string="месяца", amount_stars=300, label="Подписка на 3 месяца"),
+    6: Tariff(amount=960, string="месяцев", amount_stars=500, label="Подписка на 6 месяцев"),
+    12: Tariff(amount=1440, string="месяцев", amount_stars=700, label="Подписка на 12 месяцев"),
 }
 
 # TARIFFS_DATA = {

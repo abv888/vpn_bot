@@ -28,7 +28,7 @@ async def payment_help_callback(call: CallbackQuery):
     await call.message.edit_text(
         "Чтобы оплатить подписку, нажмите «Подключить VPN», выберите нужную локацию и тарифный план, "
         "выберите способ платежа и проведите оплату.\n\n"
-        "После этого система перенаправит вас на Telegram-бота ShadowGate и ваша подписка станет активна.",
+        "После этого система перенаправит вас на Telegram-бота Baogrand VPN и ваша подписка станет активна.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="Подключить VPN", callback_data="connect_vpn")],
@@ -40,7 +40,7 @@ async def payment_help_callback(call: CallbackQuery):
 @help_router.callback_query(F.data == "traffic_limit")
 async def traffic_limit_callback(call: CallbackQuery):
     await call.message.edit_text(
-        "У ShadowGate есть ограничение на количество устройств, на которые вы можете установить ваш ключ.\n"
+        "У Baogrand VPN есть ограничение на количество устройств, на которые вы можете установить ваш ключ.\n"
         "Одна подписка - одно устройство!\n"
         "Зато нет ограничений на скорость соединения, она всегда максимальная!\n\n"
         "И даже нет ограничения на объем трафика, который можно выкачать за 1 месяц!\n"

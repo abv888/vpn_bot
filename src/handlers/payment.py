@@ -129,7 +129,7 @@ async def handle_payment_method(call: CallbackQuery, bot: Bot):
             },
             'confirmation': {
                 'type': 'redirect',
-                'return_url': 'https://t.me/ShadowGate_bot'
+                'return_url': 'https://t.me/baograndbot'
             },
             'capture': True,
             'metadata': {
