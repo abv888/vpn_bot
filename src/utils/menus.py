@@ -78,7 +78,7 @@ def help_menu():
             [
                 InlineKeyboardButton(
                     text="Чат с поддержкой",
-                    url="https://t.me/shadowgate_support"
+                    url="https://t.me/daosup"
                 )
             ],
             [
@@ -138,7 +138,7 @@ def help_device():
             [
                 InlineKeyboardButton(
                     text="Чат с поддержкой",
-                    url="https://t.me/shadowgate_support"
+                    url="https://t.me/daosup"
                 )
             ],
             [
