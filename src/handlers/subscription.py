@@ -117,7 +117,7 @@ async def location_selected(call: CallbackQuery):
 
 @subscription_router.callback_query(F.data == "free_vpn")
 async def free_vpn_sender(call :CallbackQuery, bot: Bot):
-    vpn_api = VPNPanelAPI(location="NL")
+    vpn_api = VPNPanelAPI(location="DE")
     try:
         await vpn_api.add_client(
                         day=int(7),
