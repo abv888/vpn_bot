@@ -121,11 +121,11 @@ async def free_vpn_sender(call :CallbackQuery, bot: Bot):
     try:
         await vpn_api.add_client(
                         day=int(7),
-                        email=f"{call.from_user.username}-NL-Test",
+                        email=f"{call.from_user.username}-DE-Test",
                         id=call.from_user.id
                     )           
         client = await vpn_api.get_client(
-            client_email=f"{call.from_user.id}-{call.from_user.username}-NL-Test"
+            client_email=f"{call.from_user.id}-{call.from_user.username}-DE-Test"
         )
         link = await vpn_api.configure_link(client=client)
         create_qr_with_logo(
@@ -146,7 +146,7 @@ async def free_vpn_sender(call :CallbackQuery, bot: Bot):
             telegram_id=call.from_user.id, 
             subscription=Subscription(
                 subscription_id=client.client_id,
-                location='NL',
+                location='DE',
                 expiry_time=7,
                 qr=f"users/qr/{client.client_id}.png",
                 link=link
