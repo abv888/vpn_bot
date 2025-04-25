@@ -112,7 +112,7 @@ async def show_subscription(message, state: FSMContext, client):
         navigation_buttons.append(InlineKeyboardButton(text="Вперед ➡️", callback_data="next_subscription"))
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Получить QR-код", callback_data="get_qr_code")],
+            [InlineKeyboardButton(text="Получить конфигурацию", callback_data="get_qr_code")],
             navigation_buttons,
             [InlineKeyboardButton(text="Главная страница", callback_data="menu")],
         ]

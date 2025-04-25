@@ -11,7 +11,7 @@ help_router = Router()
 async def help_menu_callback(call: CallbackQuery):
     logger.info(f"User {call.from_user.id} accessed help menu.")
     await call.message.edit_text(
-        "Ниже представлены ответы на самые часто задаваемые вопросы.", 
+        "Ниже представлены ответы на часто задаваемые вопросы.", 
         reply_markup=help_menu()
     )
 

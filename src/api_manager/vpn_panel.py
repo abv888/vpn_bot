@@ -160,7 +160,7 @@ class VPNPanelAPI:
     async def configure_link(self, client: Client):
         vpn_connection_string = (
             f"{client.protocol}://{client.client_id}@{self.config['domen']}:{client.port}"
-            f"?type={client.network}&security={client.security}&pbk={self.config['pbk']}&fp=chrome&sni=google.com&sid={self.config['sid']}&spx=%2F"
+            f"?type={client.network}&security={client.security}&pbk={self.config['pbk']}&fp=chrome&sni=www.teamdocs.su&sid={self.config['sid']}&spx=%2F"
             f"&flow={client.flow}#{client.email}"
         )
         return vpn_connection_string

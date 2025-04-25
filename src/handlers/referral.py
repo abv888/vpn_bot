@@ -31,15 +31,15 @@ async def show_referrals(call: CallbackQuery):
     
     if not referred_users:
         referral_text = (
-            f"Ваш реферальный код: <code>{referral_code}</code>\n"
+            f"Ваш пригласительный код: <code>{referral_code}</code>\n"
             f"Ваша скидка: {discount}%\n\n"
             "У вас пока нет приглашенных пользователей.\n"
-            "Приглашайте друзей и получайте скидки на подписки!"
+            "Приглашайте друзей и получайте скидку на оплату подписки!"
         )
     else:
         referral_text = (
-            f"<b>Мои рефералы:</b>\n"
-            f"Ваш реферальный код: <code>{client.referral_code}</code>\n"
+            f"<b>Приглашённые друзья:</b>\n"
+            f"Ваш пригласительный код: <code>{client.referral_code}</code>\n"
             f"Ваша скидка: {client.discount}%\n\n"
             f"<b>Приглашенные пользователи:</b> {len(referred_users)}\n\n"
         )

@@ -12,8 +12,8 @@ def main_menu():
                     callback_data="connect_vpn"
                 ),
                 InlineKeyboardButton(
-                    text="Помощь",
-                    callback_data="help"
+                    text="Пригласить друга",
+                    callback_data="my_referrals"
                 )
             ],
             [
@@ -22,8 +22,8 @@ def main_menu():
                     callback_data="my_subscriptions"
                 ),
                 InlineKeyboardButton(
-                    text="Мои рефералы",
-                    callback_data="my_referrals"
+                    text="Помощь",
+                    callback_data="help"
                 )
             ],
             [
@@ -77,7 +77,7 @@ def help_menu():
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="Чат с поддержкой",
+                    text="Поддержка",
                     url="https://t.me/daosup"
                 )
             ],
