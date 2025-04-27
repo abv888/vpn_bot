@@ -15,27 +15,27 @@ start_router = Router()
 async def send_welcome(message: Message):
     logger.info(f"User {message.from_user.id} started the bot.")
     await add_client_to_db(message.from_user.id)
-    await message.answer("🥷🏽 **Baogrand VPN** - продвинутое решение для всех пользователей.\n\n" \
+    await message.answer("🥷🏽 <b>Baogrand VPN</b> - продвинутое решение для всех пользователей.\n\n" \
     "⚡️ Высокая скорость\n" \
     "🔓 Доступ к заблокированным сервисам\n" \
-    "💰 Оплата картами РФ и криптовалютой", reply_markup=main_menu())
+    "💰 Оплата картами РФ и криптовалютой", reply_markup=main_menu(), parse_mode=ParseMode.HTML)
 
 @start_router.message(F.text == "/menu")
 async def menu(message: Message):
     logger.info(f"User {message.from_user.id} accessed the menu.")
     await message.delete()
-    await message.answer("🥷🏽 **Baogrand VPN** - продвинутое решение для всех пользователей.\n\n" \
+    await message.answer("🥷🏽 <b>Baogrand VPN</b> - продвинутое решение для всех пользователей.\n\n" \
     "⚡️ Высокая скорость\n" \
     "🔓 Доступ к заблокированным сервисам\n" \
-    "💰 Оплата картами РФ и криптовалютой", reply_markup=main_menu())
+    "💰 Оплата картами РФ и криптовалютой", reply_markup=main_menu(), parse_mode=ParseMode.HTML)
 
 @start_router.callback_query(F.data == "menu")
 async def main_menu_callback(call: CallbackQuery):
     logger.info(f"User {call.from_user.id} returned to main menu.")
-    await call.message.edit_text("🥷🏽 **Baogrand VPN** - продвинутое решение для всех пользователей.\n\n" \
+    await call.message.edit_text("🥷🏽 <b>Baogrand VPN</b> - продвинутое решение для всех пользователей.\n\n" \
     "⚡️ Высокая скорость\n" \
     "🔓 Доступ к заблокированным сервисам\n" \
-    "💰 Оплата картами РФ и криптовалютой", reply_markup=main_menu())
+    "💰 Оплата картами РФ и криптовалютой", reply_markup=main_menu(), parse_mode=ParseMode.HTML)
 
 @start_router.callback_query(F.data == "connect_vpn")
 async def ask_for_email(call: CallbackQuery, state: FSMContext):
