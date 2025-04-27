@@ -76,15 +76,16 @@ async def get_qr_code(call: CallbackQuery, state: FSMContext, bot: Bot):
         chat_id=call.message.chat.id,
         photo=FSInputFile(subscription["qr"]),
         caption=(
-            f"<b>QR-код для подписки:</b>\n"
-            f"{server.description}\n"
-            f"<b>Дата окончания:</b> {subscription['expiry_time']}\n"
-            "<b>Ссылка на конфигурацию:</b>\n"
+           # f"<b>QR-код для подписки:</b>\n"
+           # f"{server.description}\n"
+           # f"<b>Дата окончания:</b> {subscription['expiry_time']}\n"
+            "<b>Конфигурация:</b>\n"
             f"<code>{subscription['link']}</code>"
         ),
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
+                [InlineKeyboardButton(text="Как подключить устройство?", callback_data="help_device")],
                 [InlineKeyboardButton(text="🔙 Вернуться назад", callback_data="delete_qr_code")],
             ]
         ),
@@ -155,5 +156,5 @@ async def free_vpn_sender(call :CallbackQuery, bot: Bot):
     except Exception as e:
         await bot.send_message(
             chat_id=call.from_user.id,
-            text="Вы уже использовали бесплатный период!"
+            text="Вы уже использовали бесплатную подписку!"
         )

@@ -137,7 +137,7 @@ def help_device():
             ],
             [
                 InlineKeyboardButton(
-                    text="Чат с поддержкой",
+                    text="Поддержка",
                     url="https://t.me/daosup"
                 )
             ],

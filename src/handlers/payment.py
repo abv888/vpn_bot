@@ -318,7 +318,10 @@ async def check_payment(call: CallbackQuery, bot: Bot, vpn_api: VPNPanelAPI):
                 await bot.send_photo(
                     chat_id=payload.get("telegram_id"),
                     photo=FSInputFile(f"users/qr/{client.client_id}.png"),
-                    caption=f"<code>{link}</code>",
+                    caption=(
+                    f"<b>Конфигурация:</b>\n",
+                    f"<code>{link}</code>"
+                    ),
                     parse_mode=ParseMode.HTML
                 )
                 print("Щас будет метод add_subscription_to_profile ")
