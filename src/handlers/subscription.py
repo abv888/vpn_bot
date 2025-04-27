@@ -141,7 +141,13 @@ async def free_vpn_sender(call :CallbackQuery, bot: Bot):
             chat_id=call.from_user.id,
             photo=FSInputFile(f"users/qr/{client.client_id}.png"),
             caption=f"<code>{link}</code>",
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                 [InlineKeyboardButton(text="Как подключить устройство?", callback_data="help_device_from_qr")],
+                 [InlineKeyboardButton(text="Главная страница", callback_data="menu")],
+                ]
+            ),
         )
         await add_subscription_to_profile(
             telegram_id=call.from_user.id, 
