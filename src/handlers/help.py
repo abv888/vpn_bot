@@ -23,6 +23,14 @@ async def device_help_callback(call: CallbackQuery):
         reply_markup=help_device()
     )
 
+@help_router.callback_query(F.data == "help_device_from_qr")
+async def device_help_callback(call: CallbackQuery):
+    await call.message.answer(
+        "Для подключения устройства к VPN, выберите ваш тип устройства и следуйте инструкции:\n\n"
+        "Если вам нужна помощь, свяжитесь с нашей поддержкой.",
+        reply_markup=help_device()
+    )
+
 @help_router.callback_query(F.data == "help_payment")
 async def payment_help_callback(call: CallbackQuery):
     await call.message.edit_text(

@@ -85,7 +85,7 @@ async def get_qr_code(call: CallbackQuery, state: FSMContext, bot: Bot):
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Как подключить устройство?", callback_data="help_device")],
+                [InlineKeyboardButton(text="Как подключить устройство?", callback_data="help_device_from_qr")],
                 [InlineKeyboardButton(text="🔙 Вернуться назад", callback_data="delete_qr_code")],
             ]
         ),
