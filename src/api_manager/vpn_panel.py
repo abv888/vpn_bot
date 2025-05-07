@@ -107,7 +107,7 @@ class VPNPanelAPI:
                 if response.status != 200:
                     raise Exception(f"Ошибка добавления клиента: {response.status}")
 
-                response_data = await response.json()
+                response_data = await response.json(content_type=None)
                 logger.info(f"Ответ от addClient для локации {self.location}: {response_data}")
 
                 if not response_data.get("success", False):
